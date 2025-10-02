@@ -1,0 +1,87 @@
+<% 
+const user = typeof locals.user !== 'undefined' ? locals.user : null;
+%>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Catalix App</title>
+    <link rel="stylesheet" href="<%= relativePathPrefix %>/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <i class="fas fa-rocket"></i>
+                <span>Catalix</span>
+            </div>
+            <div class="nav-links">
+                <a href="<%= relativePathPrefix %>/dashboard" class="nav-link active">Dashboard</a>
+                <a href="<%= relativePathPrefix %>/logout" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="dashboard-container">
+            <div class="dashboard-header">
+                <h1>Welcome, <%= user.username %>!</h1>
+                <p>You have successfully logged into your dashboard.</p>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <div class="card-icon">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3>Profile</h3>
+                        <p>Manage your account settings and preferences</p>
+                        <button class="btn btn-outline">View Profile</button>
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <div class="card-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3>Analytics</h3>
+                        <p>View your activity and performance metrics</p>
+                        <button class="btn btn-outline">View Analytics</button>
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <div class="card-icon">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3>Settings</h3>
+                        <p>Configure your application preferences</p>
+                        <button class="btn btn-outline">Open Settings</button>
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <div class="card-icon">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3>Notifications</h3>
+                        <p>Stay updated with the latest notifications</p>
+                        <button class="btn btn-outline">View All</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2025 Catalix App. All rights reserved.</p>
+    </footer>
+</body>
+</html>
