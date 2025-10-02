@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= title || 'Catalix App' %></title>
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/DEV/NOD/css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
@@ -16,12 +16,12 @@
             </div>
             <div class="nav-links">
                 <% if (typeof user !== 'undefined' && user) { %>
-                    <a href="/dashboard" class="nav-link">Dashboard</a>
-                    <a href="/logout" class="nav-link">Logout</a>
+                    <a href="/DEV/NOD/dashboard" class="nav-link">Dashboard</a>
+                    <a href="/DEV/NOD/logout" class="nav-link">Logout</a>
                 <% } else { %>
-                    <a href="/" class="nav-link">Home</a>
-                    <a href="/login" class="nav-link">Login</a>
-                    <a href="/register" class="nav-link">Register</a>
+                    <a href="/DEV/NOD/" class="nav-link">Home</a>
+                    <a href="/DEV/NOD/login" class="nav-link">Login</a>
+                    <a href="/DEV/NOD/register" class="nav-link">Register</a>
                 <% } %>
             </div>
         </div>
