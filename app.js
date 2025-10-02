@@ -78,14 +78,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// Middleware to check if user is authenticated
-const requireAuth = (req, res, next) => {
-    if (req.session.user) {
-        next();
-    } else {
-        res.redirect('/login');
-    }
-};
+// Legacy session-based auth removed - using Catalix Passport Authentication
 
 // ===== CATALIX AUTHENTICATION ENDPOINTS =====
 
@@ -131,104 +124,15 @@ app.post('/start-session', (req, res) => {
     }
 });
 
-// Demo endpoint to get a test passport
-app.post('/demo-passport', (req, res) => {
-    try {
-        const userData = req.body.userData || {};
-        const passport = PassportGenerator.createDemoPassport(userData);
-        
-        return res.json({
-            success: true,
-            passport: passport,
-            message: 'Demo passport generated successfully'
-        });
-    } catch (error) {
-        console.error('Error generating demo passport:', error);
-        return res.status(500).json({
-            error: 'Internal Server Error',
-            message: 'Failed to generate demo passport'
-        });
-    }
-});
-
-// Passport validation endpoint
-app.post('/validate-passport', (req, res) => {
-    try {
-        const { passport: passportText } = req.body;
-        
-        if (!passportText) {
-            return res.status(400).json({
-                error: 'Bad Request',
-                message: 'Passport is required'
-            });
-        }
-        
-        const passport = PassportDeserializer.safeDeserialize(passportText);
-        
-        if (!passport) {
-            return res.status(400).json({
-                valid: false,
-                error: 'Invalid passport format or signature'
-            });
-        }
-        
-        return res.json({
-            valid: true,
-            user: {
-                id: passport.UserID,
-                email: passport.Email,
-                userType: passport.UserType,
-                userGroups: passport.UserGroups,
-                isSupportUser: passport.IsSupportUser
-            }
-        });
-    } catch (error) {
-        console.error('Error validating passport:', error);
-        return res.status(500).json({
-            error: 'Internal Server Error',
-            message: 'Failed to validate passport'
-        });
-    }
-});
-
 // ===== PUBLIC ROUTES =====
 
 // Routes that don't require passport authentication
 app.get('/', (req, res) => {
-    // Check if user has session (legacy) or passport
-    if (req.session.user) {
-        res.render('dashboard', { user: req.session.user });
-    } else {
-        res.render('home');
-    }
+    // Home page - public route (authentication handled by individual routes)
+    res.render('home');
 });
 
-// Authentication testing page
-app.get('/auth-test', (req, res) => {
-    res.render('auth-test');
-});
-
-app.get('/login', (req, res) => {
-    if (req.session.user) {
-        res.redirect('/dashboard');
-    } else {
-        res.render('login', { error: null });
-    }
-});
-
-app.post('/login', async (req, res) => {
-    const { username, password } = req.body;
-    
-    // Find user
-    const user = users.find(u => u.username === username);
-    
-    if (user && await bcrypt.compare(password, user.password)) {
-        req.session.user = { id: user.id, username: user.username };
-        res.redirect('/dashboard');
-    } else {
-        res.render('login', { error: 'Invalid username or password' });
-    }
-});
+// Login routes removed - Catalix Auth uses gateway forwarded headers
 
 // ===== PROTECTED ROUTES (Passport Authentication Required) =====
 
@@ -264,51 +168,11 @@ app.get('/api/users', PassportAuthMiddleware.requireGroups(['admin', 'users']), 
 });
 
 app.get('/logout', (req, res) => {
-    req.session.destroy(err => {
-        if (err) {
-            console.error('Error destroying session:', err);
-        }
-        res.redirect('/');
-    });
+    res.redirect('/DEV/NOD/Logout');
 });
 
-// Register route (for demonstration)
-app.get('/register', (req, res) => {
-    res.render('register', { error: null, success: null });
-});
-
-app.post('/register', async (req, res) => {
-    const { username, password, confirmPassword } = req.body;
-    
-    // Basic validation
-    if (password !== confirmPassword) {
-        return res.render('register', { 
-            error: 'Passwords do not match', 
-            success: null 
-        });
-    }
-    
-    if (users.find(u => u.username === username)) {
-        return res.render('register', { 
-            error: 'Username already exists', 
-            success: null 
-        });
-    }
-    
-    // Hash password and create user
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = {
-        id: users.length + 1,
-        username,
-        password: hashedPassword
-    };
-    
-    users.push(newUser);
-    
-    res.render('register', { 
-        error: null, 
-        success: 'Account created successfully! You can now log in.' 
-    });
+app.get('/logged-out', (req, res) => {
+    res.render('loggedout');
 });
 
 // Start server

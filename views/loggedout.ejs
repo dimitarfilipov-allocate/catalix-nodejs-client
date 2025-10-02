@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logged Out - Catalix App</title>
+    <link rel="stylesheet" href="/DEV/NOD/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <main class="main-content">
+        <div class="auth-container">
+            <div class="logout-box">
+                <div class="logout-content">
+                    <div class="logout-icon">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </div>
+                    <h1 class="logout-title">You have been Logged Out</h1>
+                    <p class="logout-message">Your session has been successfully terminated. Thank you for using Catalix!</p>
+                </div>
+            </div>
+        </div>
+    </main>
+   
+    <style>
+        .logout-box {
+            background: white;
+            padding: 3rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .logout-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .logout-icon {
+            font-size: 4rem;
+            color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logout-title {
+            font-size: 2rem;
+            color: #333;
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .logout-message {
+            color: #666;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .logout-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .logout-box {
+                padding: 2rem;
+                margin: 1rem;
+            }
+            
+            .logout-title {
+                font-size: 1.5rem;
+            }
+            
+            .logout-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .logout-actions .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</body>
+</html>
