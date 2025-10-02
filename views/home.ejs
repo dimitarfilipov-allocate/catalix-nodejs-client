@@ -17,16 +17,6 @@ const user = typeof locals.user !== 'undefined' ? locals.user : null;
                 <i class="fas fa-rocket"></i>
                 <span>Catalix</span>
             </div>
-            <div class="nav-links">
-                <% if (user) { %>
-                    <a href="/DEV/NOD/dashboard" class="nav-link">Dashboard</a>
-                    <a href="/DEV/NOD/logout" class="nav-link">Logout</a>
-                <% } else { %>
-                    <a href="/DEV/NOD/" class="nav-link">Home</a>
-                    <a href="/DEV/NOD/login" class="nav-link">Login</a>
-                    <a href="/DEV/NOD/register" class="nav-link">Register</a>
-                <% } %>
-            </div>
         </div>
     </nav>
 
@@ -37,18 +27,11 @@ const user = typeof locals.user !== 'undefined' ? locals.user : null;
                 <p class="hero-subtitle">Your modern Node.js application with secure authentication</p>
                 <div class="hero-buttons">
                     <% if (!user) { %>
-                        <a href="/DEV/NOD/login" class="btn btn-primary">
+                        <a href="/DEV/NOD/dashboard" class="btn btn-primary">
                             <i class="fas fa-sign-in-alt"></i>
                             Login
                         </a>
-                        <a href="/DEV/NOD/register" class="btn btn-secondary">
-                            <i class="fas fa-user-plus"></i>
-                            Register
-                        </a>
-                        <a href="/DEV/NOD/auth-test" class="btn btn-outline">
-                            <i class="fas fa-passport"></i>
-                            Test Catalix Auth
-                        </a>
+                        
                     <% } else { %>
                         <a href="/DEV/NOD/dashboard" class="btn btn-primary">
                             <i class="fas fa-tachometer-alt"></i>
