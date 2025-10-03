@@ -11,25 +11,16 @@ const user = typeof locals.user !== 'undefined' ? locals.user : null;
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="nav-logo">
-                <i class="fas fa-rocket"></i>
-                <span>Catalix</span>
-            </div>
-        </div>
-    </nav>
-
     <main class="main-content">
         <div class="hero-section">
             <div class="hero-content">
-                <h1 class="hero-title">Welcome to Catalix</h1>
-                <p class="hero-subtitle">Your modern Node.js application with secure authentication</p>
+                <h1 class="hero-title">Welcome to Catalix Demo Client</h1>
+                <p class="hero-subtitle">This is a minimal set of features to demonstrate the Catalix authentication flow.</p>
                 <div class="hero-buttons">
                     <% if (!user) { %>
                         <a href="/DEV/NOD/dashboard" class="btn btn-primary">
                             <i class="fas fa-sign-in-alt"></i>
-                            Login
+                            Go to Dashboard
                         </a>
                         
                     <% } else { %>
@@ -73,7 +64,7 @@ const user = typeof locals.user !== 'undefined' ? locals.user : null;
     </main>
 
     <footer class="footer">
-        <p>&copy; 2025 Catalix App. All rights reserved.</p>
+        <p>&copy; 2025 Catalix Demo App.</p>
     </footer>
 </body>
 </html>
