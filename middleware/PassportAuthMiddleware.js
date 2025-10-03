@@ -151,64 +151,6 @@ class PassportAuthMiddleware {
     static optional(options = {}) {
         return PassportAuthMiddleware.create({ ...options, required: false });
     }
-
-    /**
-     * Creates middleware that requires specific user groups
-     * @param {string|string[]} requiredGroups - Required user groups
-     * @param {Object} options - Additional options
-     */
-    static requireGroups(requiredGroups, options = {}) {
-        const groups = Array.isArray(requiredGroups) ? requiredGroups : [requiredGroups];
-        
-        return [
-            PassportAuthMiddleware.required(options),
-            (req, res, next) => {
-                if (!req.user || !req.user.userGroups) {
-                    return res.status(403).json({
-                        error: 'Forbidden',
-                        message: 'User groups not found',
-                        code: 'MISSING_USER_GROUPS'
-                    });
-                }
-
-                const userGroups = req.user.userGroups;
-                const hasRequiredGroup = groups.some(group => userGroups.includes(group));
-
-                if (!hasRequiredGroup) {
-                    console.log(`🚫 Access denied - Required groups: ${groups.join(', ')}, User groups: ${userGroups.join(', ')}`);
-                    return res.status(403).json({
-                        error: 'Forbidden',
-                        message: `Access denied. Required groups: ${groups.join(', ')}`,
-                        code: 'INSUFFICIENT_PERMISSIONS',
-                        requiredGroups: groups,
-                        userGroups: userGroups
-                    });
-                }
-
-                next();
-            }
-        ];
-    }
-
-    /**
-     * Creates middleware that requires support user access
-     */
-    static requireSupportUser(options = {}) {
-        return [
-            PassportAuthMiddleware.required(options),
-            (req, res, next) => {
-                if (!req.user || !req.user.isSupportUser) {
-                    console.log(`🚫 Access denied - Support user required, user: ${req.user?.email}`);
-                    return res.status(403).json({
-                        error: 'Forbidden',
-                        message: 'Support user access required',
-                        code: 'SUPPORT_USER_REQUIRED'
-                    });
-                }
-                next();
-            }
-        ];
-    }
 }
 
 module.exports = PassportAuthMiddleware;

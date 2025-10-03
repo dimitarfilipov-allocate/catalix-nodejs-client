@@ -11,14 +11,8 @@ const PassportAuthMiddleware = require('./middleware/PassportAuthMiddleware');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Simple in-memory user storage (in production, use a database)
-const users = [
-    {
-        id: 1,
-        username: 'admin',
-        password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi' // 'password' hashed
-    }
-];
+//****IMPORTANT: CHANGE THIS AS PER CPCS Configuration */
+const relativePathPrefix = '/DEV/NOD';
 
 // Middleware setup
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -37,48 +31,6 @@ app.use(session({
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Header checking middleware (for logging only, authentication handled per route)
-app.use((req, res, next) => {
-    // Log request details
-    console.log(`\n=== Request Headers Check ===`);
-    console.log(`${req.method} ${req.url}`);
-    console.log(`Timestamp: ${new Date().toISOString()}`);
-    console.log(`IP: ${req.ip || req.connection.remoteAddress}`);
-    
-    // Log important headers
-    const importantHeaders = [
-        'user-agent',
-        'accept',
-        'authorization',
-        'x-passport',
-        'content-type',
-        'host',
-        'origin',
-        'referer'
-    ];
-    
-    console.log('Headers:');
-    importantHeaders.forEach(header => {
-        if (req.headers[header]) {
-            // Don't log full passport content for security
-            const value = header === 'x-passport' ? '[PASSPORT_PRESENT]' : req.headers[header];
-            console.log(`  ${header}: ${value}`);
-        }
-    });
-    
-    // Add security headers to response
-    res.set({
-        'X-Frame-Options': 'DENY',
-        'X-Content-Type-Options': 'nosniff',
-        'X-XSS-Protection': '1; mode=block',
-        'Referrer-Policy': 'strict-origin-when-cross-origin'
-    });
-    
-    console.log('===========================\n');
-    next();
-});
-
-// Legacy session-based auth removed - using Catalix Passport Authentication
 
 // ===== CATALIX AUTHENTICATION ENDPOINTS =====
 
@@ -129,10 +81,11 @@ app.post('/start-session', (req, res) => {
 // Routes that don't require passport authentication
 app.get('/', (req, res) => {
     // Home page - public route (authentication handled by individual routes)
-    res.render('home');
+    res.render('home', {
+        relativePathPrefix: relativePathPrefix
+    });
 });
 
-// Login routes removed - Catalix Auth uses gateway forwarded headers
 
 // ===== PROTECTED ROUTES (Passport Authentication Required) =====
 
@@ -146,33 +99,21 @@ app.get('/dashboard', PassportAuthMiddleware.required(), (req, res) => {
             userType: req.user.userType,
             userGroups: req.user.userGroups,
             isSupportUser: req.user.isSupportUser
-        }
+        },
+        relativePathPrefix: relativePathPrefix
     });
 });
 
-// Admin endpoint - requires support user
-app.get('/admin', PassportAuthMiddleware.requireSupportUser(), (req, res) => {
-    res.json({
-        message: 'Welcome to admin area',
-        user: req.user,
-        timestamp: new Date().toISOString()
-    });
-});
-
-// API endpoint requiring specific groups
-app.get('/api/users', PassportAuthMiddleware.requireGroups(['admin', 'users']), (req, res) => {
-    res.json({
-        users: users.map(u => ({ id: u.id, username: u.username })),
-        requestedBy: req.user.email
-    });
-});
-
+// Logout route - redirects to Catalix Auth logout
 app.get('/logout', (req, res) => {
-    res.redirect('/DEV/NOD/Logout');
+    res.redirect(`${relativePathPrefix}/Logout`);
 });
 
+// Logged out confirmation page
 app.get('/logged-out', (req, res) => {
-    res.render('loggedout');
+    res.render('loggedout', {
+        relativePathPrefix: relativePathPrefix
+    });
 });
 
 // Start server

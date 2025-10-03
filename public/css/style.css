@@ -453,6 +453,80 @@ body {
     margin-top: auto;
 }
 
+/* Simple Home Page Styles */
+.simple-container {
+    padding: 2rem;
+    width: 100%;
+    max-width: 400px;
+}
+
+.simple-card {
+    background: white;
+    padding: 3rem 2rem;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    text-align: center;
+}
+
+.simple-card h1 {
+    margin: 0 0 1rem 0;
+    color: #333;
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+.simple-card p {
+    margin: 0 0 2rem 0;
+    color: #666;
+    font-size: 1.1rem;
+}
+
+.simple-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.simple-btn {
+    display: block;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    background: linear-gradient(135deg, #195734 0%, #2d7a4f 100%);
+    color: white;
+    border: 2px solid transparent;
+}
+
+.simple-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(25, 87, 52, 0.3);
+}
+
+.simple-btn.outline {
+    background: transparent;
+    color: #195734;
+    border-color: #195734;
+}
+
+.simple-btn.outline:hover {
+    background: #195734;
+    color: white;
+}
+
+/* Simple Home Page Body Override */
+body.simple-home {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(135deg, #195734 0%, #2d7a4f 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .nav-container {
@@ -489,6 +563,19 @@ body {
     .auth-card {
         margin: 1rem;
         padding: 1.5rem;
+    }
+    
+    /* Simple Home Page Responsive */
+    .simple-container {
+        padding: 1rem;
+    }
+    
+    .simple-card {
+        padding: 2rem 1.5rem;
+    }
+    
+    .simple-card h1 {
+        font-size: 1.5rem;
     }
 }
 

@@ -189,228 +189,216 @@ class PassportGenerator {
 ## 4. Passport Authentication Middleware
 
 **Prompt:**  
-Create Express middleware that reads the `x-passport` header, deserializes it, validates it, and creates user context for routes.
+Create simplified Express middleware that focuses on core authentication patterns (required and optional) for header-based passport validation.
 
 ```javascript
-class PassportAuthMiddleware {
-    static create(options = {}) {
-        const config = {
-            required: options.required !== false,
-            logRequests: options.logRequests !== false
-        };
+const { PassportDeserializer } = require('../models/PassportUtils');
 
+class PassportAuthMiddleware {
+    // Basic authentication check - requires valid passport
+    static required() {
         return (req, res, next) => {
             try {
-                const passportHeader = req.headers['x-passport'] || req.headers['X-Passport'];
+                const passport = req.headers['x-passport'];
                 
-                if (config.logRequests) {
-                    console.log(`🎫 Passport Auth Check - ${req.method} ${req.url}`);
-                    console.log(`Passport Header Present: ${!!passportHeader}`);
-                }
-
-                if (!passportHeader) {
-                    if (config.required) {
-                        return res.status(401).json({
-                            error: 'Unauthorized',
-                            message: 'Missing or invalid x-passport header',
-                            code: 'MISSING_PASSPORT'
-                        });
-                    }
-                    req.passport = null;
-                    req.user = null;
-                    return next();
-                }
-
-                const passport = PassportDeserializer.safeDeserialize(passportHeader.trim());
-
                 if (!passport) {
-                    if (config.required) {
-                        return res.status(401).json({
-                            error: 'Unauthorized',
-                            message: 'Invalid passport format or signature',
-                            code: 'INVALID_PASSPORT'
-                        });
-                    }
-                    req.passport = null;
-                    req.user = null;
-                    return next();
-                }
-
-                if (!passport.isValid()) {
-                    if (config.required) {
-                        return res.status(401).json({
-                            error: 'Unauthorized',
-                            message: 'Passport validation failed',
-                            code: 'INVALID_PASSPORT_DATA'
-                        });
-                    }
-                    req.passport = null;
-                    req.user = null;
-                    return next();
-                }
-
-                req.passport = passport;
-                req.user = {
-                    id: passport.UserID,
-                    email: passport.Email,
-                    isSupportUser: passport.IsSupportUser,
-                    userGroups: passport.UserGroups,
-                    userType: passport.UserType,
-                    claims: passport.getClaims()
-                };
-
-                if (config.logRequests) {
-                    console.log('✅ Passport authentication successful');
-                    console.log(`User: ${passport.Email} (${passport.UserID})`);
-                }
-
-                next();
-
-            } catch (error) {
-                console.error('🚨 Passport authentication error:', error);
-                
-                if (config.required) {
-                    return res.status(500).json({
-                        error: 'Internal Server Error',
-                        message: 'Authentication processing failed',
-                        code: 'AUTH_PROCESSING_ERROR'
+                    console.log('Authentication failed: Missing x-passport header');
+                    return res.status(401).json({
+                        error: 'Unauthorized',
+                        message: 'Missing authentication header'
                     });
                 }
 
-                req.passport = null;
+                const deserializedPassport = PassportDeserializer.deserializePassport(passport);
+                
+                if (!deserializedPassport.isValid()) {
+                    console.log('Authentication failed: Invalid passport');
+                    return res.status(401).json({
+                        error: 'Unauthorized',
+                        message: 'Invalid authentication'
+                    });
+                }
+
+                // Attach user to request
+                req.user = {
+                    id: deserializedPassport.userId,
+                    email: deserializedPassport.email,
+                    userType: deserializedPassport.userType,
+                    userGroups: deserializedPassport.userGroups,
+                    isSupportUser: deserializedPassport.isSupportUser
+                };
+
+                next();
+            } catch (error) {
+                console.error('Authentication middleware error:', error);
+                return res.status(500).json({
+                    error: 'Internal Server Error',
+                    message: 'Authentication processing failed'
+                });
+            }
+        };
+    }
+
+    // Optional authentication - continues even without passport
+    static optional() {
+        return (req, res, next) => {
+            try {
+                const passport = req.headers['x-passport'];
+                
+                if (!passport) {
+                    req.user = null;
+                    return next();
+                }
+
+                const deserializedPassport = PassportDeserializer.deserializePassport(passport);
+                
+                if (deserializedPassport.isValid()) {
+                    req.user = {
+                        id: deserializedPassport.userId,
+                        email: deserializedPassport.email,
+                        userType: deserializedPassport.userType,
+                        userGroups: deserializedPassport.userGroups,
+                        isSupportUser: deserializedPassport.isSupportUser
+                    };
+                } else {
+                    req.user = null;
+                }
+
+                next();
+            } catch (error) {
+                console.error('Optional authentication error:', error);
                 req.user = null;
                 next();
             }
         };
     }
-
-    static required(options = {}) {
-        return PassportAuthMiddleware.create({ ...options, required: true });
-    }
-
-    static optional(options = {}) {
-        return PassportAuthMiddleware.create({ ...options, required: false });
-    }
-
-    static requireGroups(requiredGroups, options = {}) {
-        const groups = Array.isArray(requiredGroups) ? requiredGroups : [requiredGroups];
-        
-        return [
-            PassportAuthMiddleware.required(options),
-            (req, res, next) => {
-                const userGroups = req.user?.userGroups || [];
-                const hasRequiredGroup = groups.some(group => userGroups.includes(group));
-
-                if (!hasRequiredGroup) {
-                    return res.status(403).json({
-                        error: 'Forbidden',
-                        message: `Access denied. Required groups: ${groups.join(', ')}`,
-                        code: 'INSUFFICIENT_PERMISSIONS'
-                    });
-                }
-                next();
-            }
-        ];
-    }
-
-    static requireSupportUser(options = {}) {
-        return [
-            PassportAuthMiddleware.required(options),
-            (req, res, next) => {
-                if (!req.user?.isSupportUser) {
-                    return res.status(403).json({
-                        error: 'Forbidden',
-                        message: 'Support user access required',
-                        code: 'SUPPORT_USER_REQUIRED'
-                    });
-                }
-                next();
-            }
-        ];
-    }
 }
+
+module.exports = PassportAuthMiddleware;
 ```
+
+**Implementation Note:** This middleware provides the core authentication patterns. For advanced authorization features like group-based access or support user validation, implement them as business logic in your route handlers using the `req.user` object properties.
 
 ---
 
-## 5. Express Server Setup
+## 5. Express Server Setup with Configuration Management
 
 **Prompt:**  
-Show how to set up an Express server with Catalix Passport Authentication, including middleware setup and route protection.
+Show how to set up an Express server with Catalix Passport Authentication, including configurable path prefixes for CPCS environments and EJS template integration.
 
 ```javascript
 const express = require('express');
 const bodyParser = require('body-parser');
+const session = require('express-session');
+const path = require('path');
 const { PassportGenerator, PassportDeserializer } = require('./models/PassportUtils');
 const PassportAuthMiddleware = require('./middleware/PassportAuthMiddleware');
 
 const app = express();
+const PORT = process.env.PORT || 3000;
+
+// IMPORTANT: CHANGE THIS AS PER CPCS Configuration
+const relativePathPrefix = '/DEV/NOD';
 
 // Middleware setup
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Header logging middleware
-app.use((req, res, next) => {
-    console.log(`${req.method} ${req.url}`);
-    
-    // Log x-passport header presence (don't log content for security)
-    if (req.headers['x-passport']) {
-        console.log('x-passport: [PASSPORT_PRESENT]');
-    }
-    
-    // Add security headers
-    res.set({
-        'X-Frame-Options': 'DENY',
-        'X-Content-Type-Options': 'nosniff',
-        'X-XSS-Protection': '1; mode=block',
-        'Referrer-Policy': 'strict-origin-when-cross-origin'
-    });
-    
-    next();
-});
+// Session configuration (for legacy compatibility)
+app.use(session({
+    secret: 'your-secret-key-change-in-production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false } // Set to true in production with HTTPS
+}));
 
-// Public routes
-app.get('/', (req, res) => {
-    res.send('Welcome to Catalix App');
-});
+// Set EJS as templating engine
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 
-// Authentication endpoints
+// ===== CATALIX AUTHENTICATION ENDPOINTS =====
+
+// Start Session endpoint - generates passport from ID token
 app.post('/start-session', (req, res) => {
     try {
         const { token } = req.body;
         
-        if (!token) {
-            return res.status(400).send('Token is required');
+        // Validate input
+        if (!token || typeof token !== 'string') {
+            console.log('StartSession called with invalid or missing token');
+            return res.status(400).json({
+                error: 'Bad Request',
+                message: 'Token is required',
+                code: 'MISSING_TOKEN'
+            });
         }
         
+        console.log('StartSession attempting to issue passport for session');
+        
+        // Generate passport from JWT ID token
         const passport = PassportGenerator.createPassportFromIdToken(token);
+        
+        console.log('StartSession completed successfully');
         return res.send(passport);
         
     } catch (error) {
-        console.error('Error processing StartSession:', error);
-        return res.status(400).send('Invalid token format');
+        if (error.message.includes('Invalid JWT format')) {
+            console.log('StartSession failed due to invalid token format:', error.message);
+            return res.status(400).json({
+                error: 'Bad Request',
+                message: 'Invalid token format',
+                code: 'INVALID_TOKEN_FORMAT'
+            });
+        }
+        
+        console.error('Error processing StartSession request:', error);
+        return res.status(500).json({
+            error: 'Internal Server Error',
+            message: 'An error occurred while processing the request',
+            code: 'PROCESSING_ERROR'
+        });
     }
 });
 
-// Protected routes
-app.get('/dashboard', PassportAuthMiddleware.required(), (req, res) => {
-    res.json({
-        message: `Welcome ${req.user.email}`,
-        user: req.user
+// ===== PUBLIC ROUTES =====
+
+// Home page with path prefix support
+app.get('/', (req, res) => {
+    res.render('home', {
+        relativePathPrefix: relativePathPrefix
     });
 });
 
-app.get('/admin', PassportAuthMiddleware.requireSupportUser(), (req, res) => {
-    res.send(`Welcome to admin area, ${req.user.email}!`);
+// ===== PROTECTED ROUTES =====
+
+// Dashboard - requires valid passport
+app.get('/dashboard', PassportAuthMiddleware.required(), (req, res) => {
+    res.render('dashboard', { 
+        user: {
+            username: req.user.email,
+            id: req.user.id,
+            userType: req.user.userType,
+            userGroups: req.user.userGroups,
+            isSupportUser: req.user.isSupportUser
+        },
+        relativePathPrefix: relativePathPrefix
+    });
 });
 
-app.get('/api/users', PassportAuthMiddleware.requireGroups(['admin', 'users']), (req, res) => {
-    res.send(`Users API accessed by ${req.user.email}`);
+// Logout route - redirects to Catalix Auth logout
+app.get('/logout', (req, res) => {
+    res.redirect(`${relativePathPrefix}/Logout`);
 });
 
-app.listen(3000, () => {
-    console.log('Server running on http://localhost:3000');
+// Logged out confirmation page
+app.get('/logged-out', (req, res) => {
+    res.render('loggedout');
+});
+
+// Start server
+app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
 });
 ```
 
@@ -441,14 +429,25 @@ Implement the following key patterns for Catalix Authentication in Node.js:
 // Require valid passport
 app.get('/protected', PassportAuthMiddleware.required(), handler);
 
-// Require specific groups
-app.get('/users', PassportAuthMiddleware.requireGroups(['admin', 'users']), handler);
-
-// Require support user
-app.get('/admin', PassportAuthMiddleware.requireSupportUser(), handler);
-
 // Optional passport (continues without auth)
 app.get('/public', PassportAuthMiddleware.optional(), handler);
+
+// For group-based or support user authorization, implement in route handler:
+app.get('/admin', PassportAuthMiddleware.required(), (req, res) => {
+    if (!req.user.isSupportUser) {
+        return res.status(403).json({ error: 'Support user access required' });
+    }
+    // Handle admin logic
+});
+
+app.get('/users', PassportAuthMiddleware.required(), (req, res) => {
+    const requiredGroups = ['admin', 'users'];
+    const hasAccess = requiredGroups.some(group => req.user.userGroups.includes(group));
+    if (!hasAccess) {
+        return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+    // Handle users logic
+});
 ```
 
 ---
@@ -478,5 +477,145 @@ project/
 
 ---
 
+## 8. EJS Template Integration
+
+**Prompt:**  
+Show how to create EJS templates that work with Catalix Authentication and configurable path prefixes.
+
+**Home Template (views/home.ejs):**
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome - Catalix App</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="simple-card">
+            <h1>Welcome to Catalix</h1>
+            <p>Your gateway to secure application access</p>
+            <a href="<%= relativePathPrefix %>/Login?returnUrl=/dashboard" class="simple-btn">Go to Dashboard</a>
+        </div>
+    </div>
+</body>
+</html>
+```
+
+**Dashboard Template (views/dashboard.ejs):**
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Catalix App</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="simple-card">
+            <h1>Dashboard</h1>
+            <div class="user-info">
+                <p><strong>Welcome:</strong> <%= user.username %></p>
+                <p><strong>User ID:</strong> <%= user.id %></p>
+                <p><strong>User Type:</strong> <%= user.userType %></p>
+                <% if (user.userGroups && user.userGroups.length > 0) { %>
+                    <p><strong>Groups:</strong> <%= user.userGroups.join(', ') %></p>
+                <% } %>
+                <% if (user.isSupportUser) { %>
+                    <p><strong>Support User:</strong> Yes</p>
+                <% } %>
+            </div>
+            <div class="actions">
+                <a href="<%= relativePathPrefix %>/Logout" class="simple-btn">Logout</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+```
+
+**CSS Styles (public/css/style.css):**
+```css
+/* Simple, clean styling for Catalix Auth pages */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background-color: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.container {
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.simple-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 30px;
+    text-align: center;
+}
+
+.simple-card h1 {
+    color: #195734;
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.8rem;
+}
+
+.simple-card p {
+    color: #666;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.simple-btn {
+    background-color: #195734;
+    color: white;
+    padding: 12px 24px;
+    text-decoration: none;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    display: inline-block;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+
+.simple-btn:hover {
+    background-color: #0d3f1f;
+}
+
+.user-info {
+    text-align: left;
+    margin: 20px 0;
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.user-info p {
+    margin: 8px 0;
+    color: #333;
+}
+
+.actions {
+    margin-top: 20px;
+}
+```
+
+---
+
 **Summary:**  
-Use these Copilot prompts and code examples to scaffold Catalix Passport Authentication in your Node.js Express project. The implementation follows gateway-forwarded authentication patterns with header-based passport validation, eliminating the need for direct login forms while maintaining robust security and authorization controls.
+Use these Copilot prompts and code examples to scaffold Catalix Passport Authentication in your Node.js Express project. The implementation follows gateway-forwarded authentication patterns with header-based passport validation, eliminating the need for direct login forms while maintaining robust security and authorization controls. The simplified middleware approach focuses on core authentication patterns with business logic authorization handled in route handlers.

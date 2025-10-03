@@ -1,70 +1,21 @@
-<% 
-const user = typeof locals.user !== 'undefined' ? locals.user : null;
-%>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home - Catalix App</title>
-    <link rel="stylesheet" href="/DEV/NOD/css/style.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>Catalix Demo</title>
+    <link rel="stylesheet" href="<%= relativePathPrefix %>/css/style.css">
 </head>
-<body>
-    <main class="main-content">
-        <div class="hero-section">
-            <div class="hero-content">
-                <h1 class="hero-title">Welcome to Catalix Demo Client</h1>
-                <p class="hero-subtitle">This is a minimal set of features to demonstrate the Catalix authentication flow.</p>
-                <div class="hero-buttons">
-                    <% if (!user) { %>
-                        <a href="/DEV/NOD/dashboard" class="btn btn-primary">
-                            <i class="fas fa-sign-in-alt"></i>
-                            Go to Dashboard
-                        </a>
-                        
-                    <% } else { %>
-                        <a href="/DEV/NOD/dashboard" class="btn btn-primary">
-                            <i class="fas fa-tachometer-alt"></i>
-                            Go to Dashboard
-                        </a>
-                    <% } %>
-                </div>
+<body class="simple-home">
+    <div class="simple-container">
+        <div class="simple-card">
+            <h1>🚀 Catalix Demo</h1>
+            <p>Node.js application with Catalix Authentication</p>
+            
+            <div class="simple-buttons">
+                <a href="<%= relativePathPrefix %>/dashboard" class="simple-btn">Dashboard</a>
             </div>
         </div>
-
-        <div class="features-section">
-            <div class="container">
-                <h2 class="section-title">Features</h2>
-                <div class="features-grid">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-shield-alt"></i>
-                        </div>
-                        <h3>Secure Authentication</h3>
-                        <p>Built with bcrypt password hashing and secure session management</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-mobile-alt"></i>
-                        </div>
-                        <h3>Responsive Design</h3>
-                        <p>Modern, mobile-first design that works on all devices</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-bolt"></i>
-                        </div>
-                        <h3>Fast Performance</h3>
-                        <p>Built with Express.js for high performance and scalability</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <footer class="footer">
-        <p>&copy; 2025 Catalix Demo App.</p>
-    </footer>
+    </div>
 </body>
 </html>
