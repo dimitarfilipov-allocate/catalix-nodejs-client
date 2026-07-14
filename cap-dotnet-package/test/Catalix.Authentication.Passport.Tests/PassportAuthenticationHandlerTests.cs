@@ -21,11 +21,10 @@ public class PassportAuthenticationHandlerTests
         passport ??= new AuthenticationPassport
         {
             UserID     = "test-user",
-            Email      = "test@example.com",
             UserType   = "standard",
             UserGroups = ["users"]
         };
-        return new JsonPassportSerializer().Serialize(passport);
+        return new ProtobufPassportSerializer().Serialize(passport);
     }
 
     private static IHost BuildHost(Action<PassportAuthenticationOptions<AuthenticationPassport>>? configure = null)
@@ -40,7 +39,7 @@ public class PassportAuthenticationHandlerTests
                     services.AddAuthentication(PassportAuthenticationDefaults.AuthenticationScheme)
                             .AddPassport(opts =>
                             {
-                                opts.Serializer = new JsonPassportSerializer();
+                                opts.Serializer = new ProtobufPassportSerializer();
                                 configure?.Invoke(opts);
                             });
                 });

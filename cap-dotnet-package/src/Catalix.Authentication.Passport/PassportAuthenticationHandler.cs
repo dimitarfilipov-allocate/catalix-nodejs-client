@@ -65,8 +65,7 @@ public class PassportAuthenticationHandler<TPassport>
         }
 
         // ── 3. Build ClaimsPrincipal ────────────────────────────────────────────
-        var claims    = passport.ToClaims().ToList();
-        var identity  = new ClaimsIdentity(claims, Scheme.Name);
+        var identity  = new PassportIdentity<TPassport>(passport, Scheme.Name);
         var principal = new ClaimsPrincipal(identity);
 
         // ── 4. PassportValidated ────────────────────────────────────────────────

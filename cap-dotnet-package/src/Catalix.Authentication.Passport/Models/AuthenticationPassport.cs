@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Security.Claims;
 using ProtoBuf;
 
@@ -17,54 +18,67 @@ public class AuthenticationPassport
     /// <summary>Unique, stable identifier for the user.</summary>
     [ProtoMember(1)] public string UserID { get; set; } = string.Empty;
 
-    /// <summary>User's primary email address.</summary>
-    [ProtoMember(2)] public string Email { get; set; } = string.Empty;
-
     /// <summary>Whether this user holds support-level privileges.</summary>
-    [ProtoMember(3)] public bool IsSupportUser { get; set; }
+    [ProtoMember(2)] public bool IsSupportUser { get; set; }
 
     /// <summary>Group memberships used for role-based authorization.</summary>
-    [ProtoMember(4)] public List<string> UserGroups { get; set; } = new();
+    [ProtoMember(3)] public List<string> UserGroups { get; set; } = new();
 
     /// <summary>
     /// Extensible key/value bag for additional claims not modelled as first-class properties.
     /// Use this to carry extra data without subclassing.
     /// </summary>
-    [ProtoMember(5)] public Dictionary<string, string> OptionalClaims { get; set; } = new();
+    [ProtoMember(4)] public Dictionary<string, string> OptionalClaims { get; set; } = new();
 
     /// <summary>Account classification (e.g. "standard", "service", "demo").</summary>
-    [ProtoMember(6)] public string UserType { get; set; } = string.Empty;
+    [ProtoMember(5)] public string UserType { get; set; } = string.Empty;
 
     /// <summary>
     /// Returns <see langword="true"/> when the passport contains the minimum required fields.
     /// Override to enforce domain-specific business rules.
     /// </summary>
-    public virtual bool IsValid() =>
-        !string.IsNullOrWhiteSpace(UserID) && !string.IsNullOrWhiteSpace(Email);
+    public virtual bool IsValid() => !string.IsNullOrWhiteSpace(UserID);
 
     /// <summary>
-    /// Converts passport properties to <see cref="Claim"/> objects that will be
-    /// placed on the resulting <see cref="ClaimsPrincipal"/>.
-    /// Override to customise the mapping or add subtype-specific claims.
+    /// Converts the passport (including all fields from derived types) into a flat list of
+    /// <see cref="Claim"/> instances suitable for building a <see cref="ClaimsPrincipal"/>.
     /// </summary>
-    public virtual IEnumerable<Claim> ToClaims()
+    public IEnumerable<Claim> ToClaims()
     {
+        // Base well-known claims
         yield return new Claim(ClaimTypes.NameIdentifier, UserID);
-        yield return new Claim(ClaimTypes.Email, Email);
-
-        if (!string.IsNullOrWhiteSpace(UserType))
-            yield return new Claim(PassportClaimTypes.UserType, UserType);
-
-        if (IsSupportUser)
-            yield return new Claim(PassportClaimTypes.IsSupportUser, bool.TrueString);
+        yield return new Claim("support_user", IsSupportUser.ToString().ToLowerInvariant());
+        yield return new Claim("user_type", UserType);
 
         foreach (var group in UserGroups)
-        {
-            yield return new Claim(ClaimTypes.Role, group);
-            yield return new Claim(PassportClaimTypes.UserGroup, group);
-        }
+            yield return new Claim("user_groups", group);
 
         foreach (var (key, value) in OptionalClaims)
-            yield return new Claim($"{PassportClaimTypes.OptionalClaimPrefix}{key}", value);
+            yield return new Claim(key, value);
+
+        // Reflect over the actual (possibly derived) type and emit any additional properties
+        // that are not already covered by the base class properties above.
+        var baseProperties = typeof(AuthenticationPassport)
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Select(p => p.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        foreach (var prop in GetType()
+                     .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                     .Where(p => !baseProperties.Contains(p.Name) && p.CanRead))
+        {
+            var value = prop.GetValue(this);
+            if (value is null) continue;
+
+            if (value is IEnumerable<string> strings)
+            {
+                foreach (var s in strings)
+                    yield return new Claim(prop.Name, s);
+            }
+            else
+            {
+                yield return new Claim(prop.Name, value.ToString()!);
+            }
+        }
     }
 }
