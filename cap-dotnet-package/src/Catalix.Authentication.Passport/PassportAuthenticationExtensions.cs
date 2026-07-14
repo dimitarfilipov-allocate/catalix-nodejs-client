@@ -1,5 +1,8 @@
+using Catalix.Authentication.Passport.Generation;
 using Catalix.Authentication.Passport.Models;
+using Catalix.Authentication.Passport.Serialization;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Catalix.Authentication.Passport;
 
@@ -64,4 +67,46 @@ public static class PassportAuthenticationExtensions
                 authenticationScheme,
                 PassportAuthenticationDefaults.DisplayName,
                 configureOptions);
+
+    // ── PassportGenerator DI helpers ───────────────────────────────────────────
+
+    /// <summary>
+    /// Registers <see cref="IPassportGenerator"/> / <see cref="IPassportGenerator{TPassport}"/>
+    /// as scoped services using the base <see cref="AuthenticationPassport"/> model
+    /// and a <see cref="JsonPassportSerializer"/> (Node.js compatible).
+    /// </summary>
+    public static IServiceCollection AddPassportGenerator(this IServiceCollection services)
+        => services.AddPassportGenerator<AuthenticationPassport>(_ => { });
+
+    /// <summary>
+    /// Registers <see cref="IPassportGenerator"/> / <see cref="IPassportGenerator{TPassport}"/>
+    /// as scoped services using the base <see cref="AuthenticationPassport"/> model.
+    /// </summary>
+    public static IServiceCollection AddPassportGenerator(
+        this IServiceCollection services,
+        Action<PassportGeneratorOptions<AuthenticationPassport>> configureOptions)
+        => services.AddPassportGenerator<AuthenticationPassport>(configureOptions);
+
+    /// <summary>
+    /// Registers <see cref="IPassportGenerator"/> / <see cref="IPassportGenerator{TPassport}"/>
+    /// as scoped services using a custom passport type and <see cref="JsonPassportSerializer{TPassport}"/>.
+    /// </summary>
+    /// <typeparam name="TPassport">Custom passport subtype.</typeparam>
+    public static IServiceCollection AddPassportGenerator<TPassport>(
+        this IServiceCollection services,
+        Action<PassportGeneratorOptions<TPassport>>? configureOptions = null)
+        where TPassport : AuthenticationPassport, new()
+    {
+        var options = new PassportGeneratorOptions<TPassport>();
+        configureOptions?.Invoke(options);
+
+        services.AddScoped<IPassportSerializer<TPassport>>(_ => new JsonPassportSerializer<TPassport>());
+        services.AddScoped<IPassportGenerator<TPassport>>(sp =>
+            new PassportGenerator<TPassport>(
+                sp.GetRequiredService<IPassportSerializer<TPassport>>(), options));
+        services.AddScoped<IPassportGenerator>(sp =>
+            sp.GetRequiredService<IPassportGenerator<TPassport>>());
+
+        return services;
+    }
 }
