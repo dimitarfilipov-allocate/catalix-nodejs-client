@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using cap_libtester.Services;
+using CAPNetClient.Services;
 
 namespace CAPNetClient.Controllers;
 
