@@ -361,14 +361,15 @@ public class ClaimsModel : PageModel
 
 ## Setup the Application to work behind CAP Authentication Gateway
 
-Once the implementation is complete, navigate to launchSettings.json and make the applicationUrl 0.0.0.0:{PORT}
-instead of localhost:{PORT}. This will make the application accessible from the CAP Authentication Gateway docker container.
+Once the implementation is complete, navigate to launchSettings.json and make the applicationUrl 0.0.0.0:PORT
+instead of localhost:PORT. 
+This will make the application accessible from the CAP Authentication Gateway docker container.
 
-Run 
+in terminal execute: 
 ```bash
 ipconfig
 ````
-and find following network adapter
+and search for WSL network adapter
 ```bash
 Ethernet adapter vEthernet (WSL (Hyper-V firewall)):
 
@@ -379,7 +380,7 @@ Ethernet adapter vEthernet (WSL (Hyper-V firewall)):
    Default Gateway . . . . . . . . . :
 ```
 
-And copy the IPv4 address that will be used as application url from CAP Authentication Gateway.
+copy the IPv4 address that will be used as application url from CAP Authentication Gateway.
 
 On the CAP Authentication Gateway, add the application configuration by changing following files: catalog.json and services.json located in 
 
