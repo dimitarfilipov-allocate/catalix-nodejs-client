@@ -1,0 +1,32 @@
+@page
+@model cap_libtester.Pages.ClaimsModel
+@{
+    ViewData["Title"] = "User Claims";
+}
+
+<h2>User Claims</h2>
+
+@if (!Model.Claims.Any())
+{
+    <p class="text-muted">No claims found.</p>
+}
+else
+{
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>Type</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var claim in Model.Claims)
+            {
+                <tr>
+                    <td><code>@claim.Type</code></td>
+                    <td>@claim.Value</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
