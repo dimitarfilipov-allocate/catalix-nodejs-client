@@ -1,7 +1,7 @@
 <Solution>
   <Folder Name="/examples/" />
   <Folder Name="/examples/net/">
-    <Project Path="../../cap-libtester/cap-libtester.csproj" />
+    <Project Path="examples/net/cap-netclient.csproj" />
   </Folder>
   <Folder Name="/src/">
     <File Path="readme.md" />
