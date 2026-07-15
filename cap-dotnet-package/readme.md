@@ -15,24 +15,27 @@ The gateway forwards a signed `x-passport` header on every authenticated request
 
 If you use an AI coding assistant like GitHub Copilot, you can add CAP authentication automatically using custom CAP implementation agent.
 
-Download the Agent and create new folder under root
+[Download the Agent](https://github.com/dimitarfilipov-allocate/catalix-nodejs-client/blob/main/cap-dotnet-package/common-auth-passport-authentication.agent.md) and create new folder under root
 
 ```bash
 your_app_root\.github\agents\common-auth-passport-authentication.agent.md
 ```
 
-Then ask your AI assistant:
+then, ask your AI assistant:
 
 ```
 Implement CAP Passport Authentication
 ```
 
 Your AI assistant will automatically install the NuGet package (RLD.CommonAuthentication.Passport) and configure the authentication middleware.
-Once completed ask the assistant:
+
+Once completed ask:
 ```
 Add protected page that will list all User Claims
 ```
-The agent will generate the necesarry code for CAP Passport Authentication and create a new Razor Page that will list all User Claims. Next navigate to following section `Setup the Application to work behind CAP Authentication Gateway`.
+The agent will generate the necesarry code for CAP Passport Authentication and create a new Razor Page that will list all User Claims. 
+
+To complete the exercise, navigate to following section `Setup the Application to work behind CAP Authentication Gateway` and execute the steps to setup your application behind CAP Authentication Gateway.
 
 ---
 
@@ -187,7 +190,7 @@ app.Run();
 
 ### 6. Add the `X-relative-gateway-path` Middleware
 
-When the app runs behind the CAP Authentication gateway, the gateway may mount it under a sub-path (e.g. `/myapp`). The `X-relative-gateway-path` header carries that prefix so ASP.NET Core routing and `asp-page` tag helpers resolve correctly.
+When the app runs behind the CAP Authentication gateway, the gateway may mount it under a sub-path (e.g. `/customer-code/myapp`). The `X-relative-gateway-path` header carries that prefix so ASP.NET Core routing and `asp-page` tag helpers resolve correctly.
 
 **Middleware/DynamicPathBaseMiddleware.cs**
 ```csharp
@@ -361,11 +364,12 @@ public class ClaimsModel : PageModel
 
 ## Setup the Application to work behind CAP Authentication Gateway
 
-Once the implementation is complete, navigate to launchSettings.json and make the applicationUrl 0.0.0.0:PORT
-instead of localhost:PORT. 
+Once implementation is complete, navigate to launchSettings.json and make the applicationUrl **0.0.0.0:{{PORT}}**
+instead of **localhost:{{PORT}}**. 
+
 This will make the application accessible from the CAP Authentication Gateway docker container.
 
-in terminal execute: 
+In terminal execute: 
 ```bash
 ipconfig
 ````
@@ -382,10 +386,11 @@ Ethernet adapter vEthernet (WSL (Hyper-V firewall)):
 
 copy the IPv4 address that will be used as application url from CAP Authentication Gateway.
 
-On the CAP Authentication Gateway, add the application configuration by changing following files: catalog.json and services.json located in 
+On the CAP Authentication Gateway, add the application configuration by changing following files: **catalog.json** and **services.json** located in 
 
-auth-api-gateway\api-gateway\user\data\catalog.json
-auth-api-gateway\api-gateway\user\data\services.json
+**auth-api-gateway\api-gateway\user\data\catalog.json**
+
+**auth-api-gateway\api-gateway\user\data\services.json**
 
 The catalog.json file is used to Route entire traffic from CAP Auth gateway to proxied application (your application) by defining following configuration:
 
@@ -393,8 +398,8 @@ The catalog.json file is used to Route entire traffic from CAP Auth gateway to p
 {
   "DEV": {
     "RAZORAPP": {
-      "endSessionUrl": "http://172.30.96.1:5272/api/capsession/end-session",
-      "startSessionUrl": "http://172.30.96.1:5272/api/capsession/start-session",
+      "endSessionUrl": "http://172.30.96.1:5272/api/cap-session/end-session",
+      "startSessionUrl": "http://172.30.96.1:5272/api/cap-session/start-session",
       "upstreamUrl": "http://172.30.96.1:5272/@{relative_url}",
       "connections": [{ "id": "Username-Password-Authentication", "name": "Default", "description": "Default", "isActive": true }],
       "auth0Scope": "openid email profile",
