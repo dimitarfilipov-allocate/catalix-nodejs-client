@@ -1,8 +1,8 @@
-using Catalix.Authentication.Passport.Models;
+using RLD.CommonAuthentication.Passport.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 
-namespace Catalix.Authentication.Passport.Context;
+namespace RLD.CommonAuthentication.Passport.Context;
 
 /// <summary>
 /// Context passed to <see cref="PassportAuthenticationEvents{TPassport}.OnAuthenticationFailed"/>.
@@ -10,16 +10,14 @@ namespace Catalix.Authentication.Passport.Context;
 /// <see cref="ResultContext{TOptions}.Success"/> to override the result.
 /// </summary>
 public class PassportAuthenticationFailedContext<TPassport> : ResultContext<PassportAuthenticationOptions<TPassport>>
-    where TPassport : AuthenticationPassport
-{
+    where TPassport : AuthenticationPassport {
     /// <inheritdoc />
     public PassportAuthenticationFailedContext(
         HttpContext context,
         AuthenticationScheme scheme,
         PassportAuthenticationOptions<TPassport> options,
         Exception exception)
-        : base(context, scheme, options)
-    {
+        : base(context, scheme, options) {
         Exception = exception;
     }
 

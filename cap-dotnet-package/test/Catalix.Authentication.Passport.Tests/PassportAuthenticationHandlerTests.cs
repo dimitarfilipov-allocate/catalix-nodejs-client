@@ -1,7 +1,7 @@
 using System.Net;
 using System.Security.Claims;
-using Catalix.Authentication.Passport.Models;
-using Catalix.Authentication.Passport.Serialization;
+using RLD.CommonAuthentication.Passport.Models;
+using RLD.CommonAuthentication.Passport.Serialization;
 using FluentAssertions;
 using Xunit;
 using Microsoft.AspNetCore.Authentication;
@@ -12,45 +12,35 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace Catalix.Authentication.Passport.Tests;
+namespace RLD.CommonAuthentication.Passport.Tests;
 
-public class PassportAuthenticationHandlerTests
-{
-    private static string GenerateToken(AuthenticationPassport? passport = null)
-    {
-        passport ??= new AuthenticationPassport
-        {
-            UserID     = "test-user",
-            UserType   = "standard",
+public class PassportAuthenticationHandlerTests {
+    private static string GenerateToken(AuthenticationPassport? passport = null) {
+        passport ??= new AuthenticationPassport {
+            UserID = "test-user",
+            UserType = "standard",
             UserGroups = ["users"]
         };
         return new ProtobufPassportSerializer().Serialize(passport);
     }
 
-    private static IHost BuildHost(Action<PassportAuthenticationOptions<AuthenticationPassport>>? configure = null)
-    {
+    private static IHost BuildHost(Action<PassportAuthenticationOptions<AuthenticationPassport>>? configure = null) {
         return new HostBuilder()
-            .ConfigureWebHost(web =>
-            {
+            .ConfigureWebHost(web => {
                 web.UseTestServer();
-                web.ConfigureServices(services =>
-                {
+                web.ConfigureServices(services => {
                     services.AddRouting();
                     services.AddAuthentication(PassportAuthenticationDefaults.AuthenticationScheme)
-                            .AddPassport(opts =>
-                            {
+                            .AddPassport(opts => {
                                 opts.Serializer = new ProtobufPassportSerializer();
                                 configure?.Invoke(opts);
                             });
                 });
-                web.Configure(app =>
-                {
+                web.Configure(app => {
                     app.UseRouting();
                     app.UseAuthentication();
-                    app.Run(async ctx =>
-                    {
-                        if (!ctx.User.Identity?.IsAuthenticated ?? true)
-                        {
+                    app.Run(async ctx => {
+                        if (!ctx.User.Identity?.IsAuthenticated ?? true) {
                             ctx.Response.StatusCode = 401;
                             return;
                         }
@@ -63,9 +53,8 @@ public class PassportAuthenticationHandlerTests
     }
 
     [Fact]
-    public async Task ValidPassport_Returns200_WithUserId()
-    {
-        using var host   = BuildHost();
+    public async Task ValidPassport_Returns200_WithUserId() {
+        using var host = BuildHost();
         await host.StartAsync();
         var client = host.GetTestClient();
 
@@ -78,8 +67,7 @@ public class PassportAuthenticationHandlerTests
     }
 
     [Fact]
-    public async Task MissingHeader_Returns401()
-    {
+    public async Task MissingHeader_Returns401() {
         using var host = BuildHost();
         await host.StartAsync();
         var client = host.GetTestClient();
@@ -89,8 +77,7 @@ public class PassportAuthenticationHandlerTests
     }
 
     [Fact]
-    public async Task InvalidToken_Returns401()
-    {
+    public async Task InvalidToken_Returns401() {
         using var host = BuildHost();
         await host.StartAsync();
         var client = host.GetTestClient();
@@ -101,14 +88,11 @@ public class PassportAuthenticationHandlerTests
     }
 
     [Fact]
-    public async Task OnMessageReceived_CanInjectToken()
-    {
+    public async Task OnMessageReceived_CanInjectToken() {
         var injectedToken = GenerateToken();
 
-        using var host = BuildHost(opts =>
-        {
-            opts.Events.OnMessageReceived = ctx =>
-            {
+        using var host = BuildHost(opts => {
+            opts.Events.OnMessageReceived = ctx => {
                 ctx.Token = injectedToken;
                 return Task.CompletedTask;
             };
@@ -121,12 +105,9 @@ public class PassportAuthenticationHandlerTests
     }
 
     [Fact]
-    public async Task OnPassportValidated_CanAddExtraClaims()
-    {
-        using var host = BuildHost(opts =>
-        {
-            opts.Events.OnPassportValidated = ctx =>
-            {
+    public async Task OnPassportValidated_CanAddExtraClaims() {
+        using var host = BuildHost(opts => {
+            opts.Events.OnPassportValidated = ctx => {
                 ctx.Principal!.AddIdentity(new ClaimsIdentity(
                     new[] { new Claim("custom", "extra-value") }));
                 return Task.CompletedTask;

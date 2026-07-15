@@ -1,8 +1,8 @@
 using System.Text;
-using Catalix.Authentication.Passport.Models;
+using RLD.CommonAuthentication.Passport.Models;
 using ProtoBuf;
 
-namespace Catalix.Authentication.Passport.Serialization;
+namespace RLD.CommonAuthentication.Passport.Serialization;
 
 /// <summary>
 /// Passport serializer using Protobuf-net binary encoding.
@@ -10,14 +10,12 @@ namespace Catalix.Authentication.Passport.Serialization;
 /// Format: <c>v1.&lt;Base64(ProtobufBytes)&gt;.&lt;Base64("static.passport.test")&gt;</c>
 /// </summary>
 public class ProtobufPassportSerializer<TPassport> : IPassportSerializer<TPassport>
-    where TPassport : AuthenticationPassport
-{
+    where TPassport : AuthenticationPassport {
     private static readonly string StaticSignature =
         Convert.ToBase64String(Encoding.ASCII.GetBytes("static.passport.test"));
 
     /// <inheritdoc />
-    public TPassport Deserialize(string passportText)
-    {
+    public TPassport Deserialize(string passportText) {
         ArgumentException.ThrowIfNullOrWhiteSpace(passportText);
 
         var parts = passportText.Trim().Split('.');
@@ -28,18 +26,14 @@ public class ProtobufPassportSerializer<TPassport> : IPassportSerializer<TPasspo
             throw new InvalidOperationException("Passport signature validation failed.");
 
         byte[] payloadBytes;
-        try
-        {
+        try {
             payloadBytes = Convert.FromBase64String(parts[1]);
-        }
-        catch (FormatException ex)
-        {
+        } catch (FormatException ex) {
             throw new InvalidOperationException("Passport payload is not valid Base64.", ex);
         }
 
         TPassport passport;
-        using (var ms = new MemoryStream(payloadBytes))
-        {
+        using (var ms = new MemoryStream(payloadBytes)) {
             passport = Serializer.Deserialize<TPassport>(ms);
         }
 
@@ -53,8 +47,7 @@ public class ProtobufPassportSerializer<TPassport> : IPassportSerializer<TPasspo
     AuthenticationPassport IPassportSerializer.Deserialize(string passportText) => Deserialize(passportText);
 
     /// <inheritdoc />
-    public string Serialize(TPassport passport)
-    {
+    public string Serialize(TPassport passport) {
         ArgumentNullException.ThrowIfNull(passport);
 
         using var stream = new MemoryStream();

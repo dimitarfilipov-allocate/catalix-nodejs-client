@@ -1,8 +1,8 @@
-using Catalix.Authentication.Passport.Models;
-using Catalix.Authentication.Passport.Serialization;
+using RLD.CommonAuthentication.Passport.Models;
+using RLD.CommonAuthentication.Passport.Serialization;
 using Microsoft.AspNetCore.Authentication;
 
-namespace Catalix.Authentication.Passport;
+namespace RLD.CommonAuthentication.Passport;
 
 /// <summary>
 /// Configuration options for Catalix Passport authentication.
@@ -12,8 +12,7 @@ namespace Catalix.Authentication.Passport;
 /// Pair a custom subtype with a matching <see cref="IPassportSerializer{TPassport}"/>.
 /// </typeparam>
 public class PassportAuthenticationOptions<TPassport> : AuthenticationSchemeOptions
-    where TPassport : AuthenticationPassport
-{
+    where TPassport : AuthenticationPassport {
     /// <summary>
     /// The HTTP header name that carries the passport string.
     /// Defaults to <see cref="PassportAuthenticationDefaults.PassportHeaderName"/> (<c>x-passport</c>).
@@ -28,8 +27,7 @@ public class PassportAuthenticationOptions<TPassport> : AuthenticationSchemeOpti
     public IPassportSerializer<TPassport> Serializer { get; set; } = new ProtobufPassportSerializer<TPassport>();
 
     /// <summary>Event callbacks invoked at each stage of the authentication flow.</summary>
-    public new PassportAuthenticationEvents<TPassport> Events
-    {
+    public new PassportAuthenticationEvents<TPassport> Events {
         get => (PassportAuthenticationEvents<TPassport>)base.Events!;
         set => base.Events = value;
     }

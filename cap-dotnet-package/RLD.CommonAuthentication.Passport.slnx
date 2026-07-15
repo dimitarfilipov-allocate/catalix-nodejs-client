@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Catalix.Authentication.Passport/RLD.CommonAuthentication.Passport.csproj" Id="5fc636ca-8649-ad48-6db4-1492d06e2000">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/Catalix.Authentication.Passport.Tests/RLD.CommonAuthentication.Passport.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,4 +1,4 @@
-namespace Catalix.Authentication.Passport.Models;
+namespace RLD.CommonAuthentication.Passport.Models;
 
 /// <summary>Well-known claim type URNs emitted when a passport is validated.</summary>
 public static class PassportClaimTypes {

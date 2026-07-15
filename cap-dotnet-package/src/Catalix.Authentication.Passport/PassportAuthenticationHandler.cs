@@ -1,12 +1,12 @@
 using System.Security.Claims;
 using System.Text.Encodings.Web;
-using Catalix.Authentication.Passport.Context;
-using Catalix.Authentication.Passport.Models;
+using RLD.CommonAuthentication.Passport.Context;
+using RLD.CommonAuthentication.Passport.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Catalix.Authentication.Passport;
+namespace RLD.CommonAuthentication.Passport;
 
 /// <summary>
 /// ASP.NET Core authentication handler for Catalix Common Authentication Passport (CAP).
@@ -17,8 +17,7 @@ namespace Catalix.Authentication.Passport;
 /// <typeparam name="TPassport">The passport model type.</typeparam>
 public class PassportAuthenticationHandler<TPassport>
     : AuthenticationHandler<PassportAuthenticationOptions<TPassport>>
-    where TPassport : AuthenticationPassport
-{
+    where TPassport : AuthenticationPassport {
     /// <inheritdoc />
     public PassportAuthenticationHandler(
         IOptionsMonitor<PassportAuthenticationOptions<TPassport>> options,
@@ -30,8 +29,7 @@ public class PassportAuthenticationHandler<TPassport>
     protected new PassportAuthenticationEvents<TPassport> Events => Options.Events;
 
     /// <inheritdoc />
-    protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
-    {
+    protected override async Task<AuthenticateResult> HandleAuthenticateAsync() {
         // ── 1. MessageReceived ──────────────────────────────────────────────────
         var messageReceivedContext = new MessageReceivedContext<TPassport>(Context, Scheme, Options);
 
@@ -44,20 +42,16 @@ public class PassportAuthenticationHandler<TPassport>
         var token = messageReceivedContext.Token
                     ?? Request.Headers[Options.HeaderName].FirstOrDefault();
 
-        if (string.IsNullOrWhiteSpace(token))
-        {
+        if (string.IsNullOrWhiteSpace(token)) {
             Logger.LogDebug("Passport authentication failed: {Header} header is missing.", Options.HeaderName);
             return AuthenticateResult.NoResult();
         }
 
         // ── 2. Deserialize ──────────────────────────────────────────────────────
         TPassport passport;
-        try
-        {
+        try {
             passport = Options.Serializer.Deserialize(token);
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             Logger.LogWarning(ex, "Passport deserialization failed.");
             var failedContext = new PassportAuthenticationFailedContext<TPassport>(Context, Scheme, Options, ex);
             await Events.AuthenticationFailed(failedContext);
@@ -65,12 +59,12 @@ public class PassportAuthenticationHandler<TPassport>
         }
 
         // ── 3. Build ClaimsPrincipal ────────────────────────────────────────────
-        var identity  = new PassportIdentity<TPassport>(passport, Scheme.Name);
+        var identity = new PassportIdentity<TPassport>(passport, Scheme.Name);
         var principal = new ClaimsPrincipal(identity);
 
         // ── 4. PassportValidated ────────────────────────────────────────────────
         var validatedContext = new PassportValidatedContext<TPassport>(Context, Scheme, Options, passport);
-        validatedContext.Principal  = principal;
+        validatedContext.Principal = principal;
         validatedContext.Properties = new AuthenticationProperties();
 
         await Events.PassportValidated(validatedContext);

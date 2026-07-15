@@ -1,7 +1,7 @@
 using System.Security.Principal;
 using System.Security.Claims;
 
-namespace Catalix.Authentication.Passport.Models;
+namespace RLD.CommonAuthentication.Passport.Models;
 
 /// <summary>
 /// An <see cref="IIdentity"/> that holds the strongly-typed <typeparamref name="TPassport"/>
@@ -9,8 +9,7 @@ namespace Catalix.Authentication.Passport.Models;
 /// </summary>
 /// <typeparam name="TPassport">The concrete passport type (may be a subclass of <see cref="AuthenticationPassport"/>).</typeparam>
 public sealed class PassportIdentity<TPassport> : ClaimsIdentity
-    where TPassport : AuthenticationPassport
-{
+    where TPassport : AuthenticationPassport {
     /// <summary>The deserialized passport that backs this identity.</summary>
     public TPassport Passport { get; }
 
@@ -24,8 +23,7 @@ public sealed class PassportIdentity<TPassport> : ClaimsIdentity
     /// The authentication type string forwarded to <see cref="ClaimsIdentity"/>.
     /// </param>
     public PassportIdentity(TPassport passport, string authenticationType)
-        : base(passport.ToClaims(), authenticationType)
-    {
+        : base(passport.ToClaims(), authenticationType) {
         Passport = passport;
     }
 }

@@ -1,8 +1,7 @@
-namespace Catalix.Authentication.Passport;
+namespace RLD.CommonAuthentication.Passport;
 
 /// <summary>Default constant values for Catalix Passport authentication.</summary>
-public static class PassportAuthenticationDefaults
-{
+public static class PassportAuthenticationDefaults {
     /// <summary>The default authentication scheme name.</summary>
     public const string AuthenticationScheme = "Passport";
 

@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Security.Claims;
 using ProtoBuf;
 
-namespace Catalix.Authentication.Passport.Models;
+namespace RLD.CommonAuthentication.Passport.Models;
 
 /// <summary>
 /// Core Catalix Authentication Passport model.
@@ -13,8 +13,7 @@ namespace Catalix.Authentication.Passport.Models;
 /// </para>
 /// </summary>
 [ProtoContract]
-public class AuthenticationPassport
-{
+public class AuthenticationPassport {
     /// <summary>Unique, stable identifier for the user.</summary>
     [ProtoMember(1)] public string UserID { get; set; } = string.Empty;
 
@@ -43,8 +42,7 @@ public class AuthenticationPassport
     /// Converts the passport (including all fields from derived types) into a flat list of
     /// <see cref="Claim"/> instances suitable for building a <see cref="ClaimsPrincipal"/>.
     /// </summary>
-    public IEnumerable<Claim> ToClaims()
-    {
+    public IEnumerable<Claim> ToClaims() {
         // Base well-known claims
         yield return new Claim(ClaimTypes.NameIdentifier, UserID);
         yield return new Claim("support_user", IsSupportUser.ToString().ToLowerInvariant());
@@ -65,18 +63,14 @@ public class AuthenticationPassport
 
         foreach (var prop in GetType()
                      .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                     .Where(p => !baseProperties.Contains(p.Name) && p.CanRead))
-        {
+                     .Where(p => !baseProperties.Contains(p.Name) && p.CanRead)) {
             var value = prop.GetValue(this);
             if (value is null) continue;
 
-            if (value is IEnumerable<string> strings)
-            {
+            if (value is IEnumerable<string> strings) {
                 foreach (var s in strings)
                     yield return new Claim(prop.Name, s);
-            }
-            else
-            {
+            } else {
                 yield return new Claim(prop.Name, value.ToString()!);
             }
         }

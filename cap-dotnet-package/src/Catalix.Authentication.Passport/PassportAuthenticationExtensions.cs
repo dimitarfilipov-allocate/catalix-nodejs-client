@@ -1,9 +1,9 @@
-using Catalix.Authentication.Passport.Models;
-using Catalix.Authentication.Passport.Serialization;
+using RLD.CommonAuthentication.Passport.Models;
+using RLD.CommonAuthentication.Passport.Serialization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Catalix.Authentication.Passport;
+namespace RLD.CommonAuthentication.Passport;
 
 /// <summary>
 /// Extension methods for registering Catalix Passport authentication with ASP.NET Core.

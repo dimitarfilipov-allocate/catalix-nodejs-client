@@ -1,7 +1,7 @@
-using Catalix.Authentication.Passport.Context;
-using Catalix.Authentication.Passport.Models;
+using RLD.CommonAuthentication.Passport.Context;
+using RLD.CommonAuthentication.Passport.Models;
 
-namespace Catalix.Authentication.Passport;
+namespace RLD.CommonAuthentication.Passport;
 
 /// <summary>
 /// Event callbacks for the Catalix Passport authentication flow.
@@ -9,8 +9,7 @@ namespace Catalix.Authentication.Passport;
 /// </summary>
 /// <typeparam name="TPassport">The passport model type.</typeparam>
 public class PassportAuthenticationEvents<TPassport>
-    where TPassport : AuthenticationPassport
-{
+    where TPassport : AuthenticationPassport {
     /// <summary>
     /// Invoked when the passport header has been read but <em>before</em> deserialization.
     /// Set <see cref="MessageReceivedContext{TPassport}.Token"/> to override the raw value.

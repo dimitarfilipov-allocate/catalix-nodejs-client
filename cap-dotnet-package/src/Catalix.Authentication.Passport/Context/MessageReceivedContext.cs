@@ -1,16 +1,15 @@
-using Catalix.Authentication.Passport.Models;
+using RLD.CommonAuthentication.Passport.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 
-namespace Catalix.Authentication.Passport.Context;
+namespace RLD.CommonAuthentication.Passport.Context;
 
 /// <summary>
 /// Context passed to <see cref="PassportAuthenticationEvents{TPassport}.OnMessageReceived"/>.
 /// Set <see cref="Token"/> to override the raw passport string before deserialization.
 /// </summary>
 public class MessageReceivedContext<TPassport> : ResultContext<PassportAuthenticationOptions<TPassport>>
-    where TPassport : AuthenticationPassport
-{
+    where TPassport : AuthenticationPassport {
     /// <inheritdoc />
     public MessageReceivedContext(
         HttpContext context,
