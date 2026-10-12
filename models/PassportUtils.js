@@ -61,10 +61,6 @@ class PassportDeserializer {
 
             // Create and return passport object
             const passport = new AuthenticationPassport(payloadData);
-            
-            if (!passport.isValid()) {
-                throw new Error('Deserialized passport is invalid');
-            }
 
             return passport;
         } catch (error) {

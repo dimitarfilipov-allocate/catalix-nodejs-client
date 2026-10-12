@@ -104,14 +104,14 @@ function createMalformedJwt(type = 'not-jwt') {
     case 'not-jwt':
       return 'not-a-jwt-token';
     case 'two-parts':
-      return '******';
+      return 'header.payload';
     case 'four-parts':
-      return '******';
+      return 'part1.part2.part3.part4';
     case 'invalid-base64':
-      return '******';
+      return 'part1.not valid base64.part3';
     case 'invalid-json': {
       const invalidJsonBase64 = Buffer.from('{ invalid-json: true ').toString('base64');
-      return `******;
+      return ['header', invalidJsonBase64, 'signature'].join('.');
     }
     default:
       return 'invalid.token';
