@@ -115,8 +115,12 @@ Thumbs.db
 *.swo
 *~
 
-# Temporary files
-tmp/
+# Playwright test results and reports
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
 temp/
 node_modules/.package-lock.json
 node_modules/.package-lock.json
