@@ -1,0 +1,7 @@
+﻿Common Authentication Passport implementation for ASP.NET Core projects (MVC, Razor Pages)
+
+There are 2 ways of implementing CAP Passport authentication in ASP.NET Core projects:
+1. Using agentinc flow
+2. Manually step by step flow of all necesarry imlementation steps.
+
+

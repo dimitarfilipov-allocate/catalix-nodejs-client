@@ -1,8 +1,0 @@
-<Solution>
-  <Folder Name="/src/">
-    <Project Path="src/Catalix.Authentication.Passport/Catalix.Authentication.Passport.csproj" />
-  </Folder>
-  <Folder Name="/test/">
-    <Project Path="test/Catalix.Authentication.Passport.Tests/Catalix.Authentication.Passport.Tests.csproj" />
-  </Folder>
-</Solution>

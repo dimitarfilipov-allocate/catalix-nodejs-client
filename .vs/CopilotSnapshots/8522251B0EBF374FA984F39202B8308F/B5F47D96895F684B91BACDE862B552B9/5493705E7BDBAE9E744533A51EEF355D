@@ -1,0 +1,561 @@
+﻿# Common Authentication Passport (CAP) for ASP.NET Core
+
+> **CAP (Common Authentication Passport)** is a header-based authentication scheme for ASP.NET Core Razor Pages (and MVC) applications running behind the Catalix gateway. The gateway forwards a signed `x-passport` header on every authenticated request; this package validates it and builds a standard `ClaimsPrincipal`.
+
+## Prerequisites
+
+- [.NET SDK](https://dotnet.microsoft.com/download) 8.0 or newer
+- Your application deployed behind the Catalix gateway (which injects the `x-passport` header)
+
+---
+
+## Use AI to Integrate CAP
+
+If you use an AI coding assistant like GitHub Copilot, you can add CAP authentication automatically using agent skills.
+
+Install the skill:
+
+```bash
+npx skills add catalix/agent-skills --skill catalix-authentication
+```
+
+Then ask your AI assistant:
+
+```
+Add CAP Passport authentication to my ASP.NET Core Razor Pages app
+```
+
+---
+
+## Step-by-Step Integration
+
+### 1. Create a New Razor Pages Project
+
+```bash
+dotnet new razor -n MyApp
+cd MyApp
+```
+
+### 2. Install NuGet Packages
+
+```bash
+dotnet add package RLD.CommonAuthentication.Passport
+dotnet add package protobuf-net
+dotnet add package System.IdentityModel.Tokens.Jwt
+```
+
+`protobuf-net` is required for Protobuf serialization of the passport payload. `System.IdentityModel.Tokens.Jwt` is needed to decode the JWT ID token in the `/start-session` endpoint.
+
+### 3. Define a Custom Passport Model *(optional but recommended)*
+
+Subclass `AuthenticationPassport` to add any application-specific fields. Assign `[ProtoMember]` tag numbers that do **not** conflict with the base class (tags 1–5 are reserved).
+
+**Models/AppPassport.cs**
+```csharp
+using ProtoBuf;
+using RLD.CommonAuthentication.Passport.Models;
+
+[ProtoContract]
+public class AppPassport : AuthenticationPassport
+{
+    [ProtoMember(6)] public string Email { get; set; } = string.Empty;
+}
+```
+
+### 4. Add the Passport Generator Service
+
+The `PassportGenerator` converts a JWT ID token (issued by your identity provider) into a CAP passport string. The Catalix gateway calls `/start-session` with this token and forwards the resulting passport as `x-passport` on subsequent requests.
+
+**Services/PassportGenerator.cs**
+```csharp
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using RLD.CommonAuthentication.Passport.Models;
+using RLD.CommonAuthentication.Passport.Serialization;
+
+public interface IPassportGenerator
+{
+    string CreatePassportFromIdToken(string idToken);
+}
+
+public class PassportGenerator : IPassportGenerator
+{
+    private readonly ILogger<PassportGenerator> _logger;
+    private readonly IPassportSerializer<AppPassport> _passportSerializer;
+
+    public PassportGenerator(ILogger<PassportGenerator> logger, IPassportSerializer<AppPassport> passportSerializer)
+    {
+        _logger = logger;
+        _passportSerializer = passportSerializer;
+    }
+
+    public string CreatePassportFromIdToken(string idToken)
+    {
+        var handler = new JwtSecurityTokenHandler();
+        var jwt = handler.ReadJwtToken(idToken);
+
+        var passport = new AppPassport
+        {
+            UserID     = jwt.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? string.Empty,
+            Email      = jwt.Claims.FirstOrDefault(c => c.Type == "email")?.Value ?? string.Empty,
+            UserType   = "Standard",
+            UserGroups = jwt.Claims
+                .Where(c => c.Type == "groups" || c.Type == ClaimTypes.Role)
+                .Select(c => c.Value)
+                .ToList()
+        };
+
+        _logger.LogInformation("Created passport for user: {UserId}", passport.UserID);
+        return _passportSerializer.Serialize(passport);
+    }
+}
+```
+
+### 5. Wire Everything in `Program.cs`
+
+**Program.cs**
+```csharp
+using Microsoft.AspNetCore.HttpOverrides;
+using ProtoBuf.Meta;
+using RLD.CommonAuthentication.Passport;
+using RLD.CommonAuthentication.Passport.Models;
+using RLD.CommonAuthentication.Passport.Serialization;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Register the derived passport type with the Protobuf runtime model
+RuntimeTypeModel.Default[typeof(AuthenticationPassport)]
+    .AddSubType(100, typeof(AppPassport));
+
+// Trust forwarded headers from the Catalix reverse proxy
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor |
+                               ForwardedHeaders.XForwardedProto |
+                               ForwardedHeaders.XForwardedHost;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
+// Register Passport authentication
+builder.Services
+    .AddAuthentication(PassportAuthenticationDefaults.AuthenticationScheme)
+    .AddPassport<AppPassport>(options => { });
+
+// Register application services
+builder.Services.AddScoped<IPassportGenerator, PassportGenerator>();
+builder.Services.AddScoped<IPassportSerializer<AppPassport>, ProtobufPassportSerializer<AppPassport>>();
+
+builder.Services.AddRazorPages();
+builder.Services.AddControllers(); // required for the session API controller
+
+var app = builder.Build();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Error");
+    app.UseHsts();
+}
+
+// Apply forwarded headers before anything else
+app.UseForwardedHeaders();
+
+// Resolve dynamic path base from X-relative-gateway-path header (see step 6)
+app.UseDynamicPathBase();
+
+app.MapStaticAssets();
+app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapRazorPages().WithStaticAssets();
+app.MapControllers();
+
+app.Run();
+```
+
+### 6. Add the `X-relative-gateway-path` Middleware
+
+When the app runs behind the Catalix gateway, the gateway may mount it under a sub-path (e.g. `/myapp`). The `X-relative-gateway-path` header carries that prefix so ASP.NET Core routing and `asp-page` tag helpers resolve correctly.
+
+**Middleware/DynamicPathBaseMiddleware.cs**
+```csharp
+public class DynamicPathBaseMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly ILogger<DynamicPathBaseMiddleware> _logger;
+
+    public DynamicPathBaseMiddleware(RequestDelegate next, ILogger<DynamicPathBaseMiddleware> logger)
+    {
+        _next = next;
+        _logger = logger;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        if (context.Request.Headers.TryGetValue("X-relative-gateway-path", out var pathBaseValue))
+        {
+            var pathBase = pathBaseValue.ToString().Trim();
+
+            if (!string.IsNullOrEmpty(pathBase))
+            {
+                if (!pathBase.StartsWith('/'))
+                    pathBase = "/" + pathBase;
+
+                if (pathBase.EndsWith('/') && pathBase.Length > 1)
+                    pathBase = pathBase.TrimEnd('/');
+
+                _logger.LogDebug("Setting PathBase from X-relative-gateway-path: {PathBase}", pathBase);
+
+                context.Request.PathBase = pathBase;
+
+                // Strip the prefix from Path so routing resolves correctly
+                if (context.Request.Path.StartsWithSegments(pathBase, out var remainingPath))
+                    context.Request.Path = remainingPath;
+            }
+        }
+
+        await _next(context);
+    }
+}
+
+public static class DynamicPathBaseMiddlewareExtensions
+{
+    public static IApplicationBuilder UseDynamicPathBase(this IApplicationBuilder app)
+        => app.UseMiddleware<DynamicPathBaseMiddleware>();
+}
+```
+
+> **Important:** Call `app.UseDynamicPathBase()` **after** `app.UseForwardedHeaders()` and **before** `app.UseRouting()`.
+
+### 7. Add the Session Endpoints
+
+The Catalix gateway calls `/api/cap-session/start-session` (POST) after the user authenticates to get a CAP passport, and `/api/cap-session/end-session` (POST) when the user logs out.
+
+**Controllers/CapSessionController.cs**
+```csharp
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+public class PassportRequest
+{
+    public string Token { get; set; } = string.Empty;
+}
+
+[ApiController]
+[Route("api/[controller]")]
+public class CapSessionController : ControllerBase
+{
+    private readonly ILogger<CapSessionController> _logger;
+    private readonly IPassportGenerator _passportGenerator;
+
+    public CapSessionController(ILogger<CapSessionController> logger, IPassportGenerator passportGenerator)
+    {
+        _logger = logger;
+        _passportGenerator = passportGenerator;
+    }
+
+    /// <summary>
+    /// Called by the Catalix gateway after the user authenticates.
+    /// Converts the JWT ID token into a CAP passport string.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPost("start-session")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public IActionResult StartSession([FromBody] PassportRequest request)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.Token))
+            return BadRequest("Token is required");
+
+        try
+        {
+            var passport = _passportGenerator.CreatePassportFromIdToken(request.Token);
+            _logger.LogInformation("StartSession completed successfully");
+            return Ok(passport);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "StartSession failed: invalid token format");
+            return BadRequest("Invalid token format");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "StartSession failed");
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred");
+        }
+    }
+
+    /// <summary>
+    /// Called by the Catalix gateway when the user logs out.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPost("end-session")]
+    public IActionResult EndSession()
+    {
+        _logger.LogInformation("EndSession called");
+        return Ok();
+    }
+}
+```
+
+### 8. Protect a Razor Page
+
+Decorate any `PageModel` with `[Authorize]` to require a valid `x-passport` header.
+
+**Pages/Claims.cshtml.cs**
+```csharp
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using RLD.CommonAuthentication.Passport;
+
+[Authorize(AuthenticationSchemes = PassportAuthenticationDefaults.AuthenticationScheme)]
+public class ClaimsModel : PageModel
+{
+    public IEnumerable<(string Type, string Value)> Claims { get; private set; } = [];
+
+    public void OnGet()
+    {
+        Claims = User.Claims.Select(c => (c.Type, c.Value));
+    }
+}
+```
+
+**Pages/Claims.cshtml**
+```razor
+@page
+@model ClaimsModel
+@{ ViewData["Title"] = "User Claims"; }
+
+<h2>User Claims</h2>
+
+<table class="table table-bordered table-striped">
+    <thead class="table-dark">
+        <tr><th>Type</th><th>Value</th></tr>
+    </thead>
+    <tbody>
+        @foreach (var claim in Model.Claims)
+        {
+            <tr>
+                <td><code>@claim.Type</code></td>
+                <td>@claim.Value</td>
+            </tr>
+        }
+    </tbody>
+</table>
+```
+
+---
+
+## How It Works
+
+```
+Browser  Catalix Gateway                                  Your App
+              |                                               |
+              | POST /api/cap-session/start-session           | PassportGenerator converts JWT -> passport string
+              | { "token": "<JWT ID token>" }  ------------>  | Returns plain-text passport string
+              |                                               |
+              | x-passport: v1.<payload>.<sig>                | PassportAuthenticationHandler reads header
+              | (every authenticated request) ------------>   | Deserializes -> AppPassport -> ClaimsPrincipal
+              |                                               |
+              | POST /api/cap-session/end-session             | Logout hook (stateless - return 200)
+              |                                               |
+              | X-relative-gateway-path: /myapp               | DynamicPathBaseMiddleware sets PathBase
+              | (every request)              ------------>    | Routing and tag helpers work under sub-path
+```
+
+- **No local login page.** Authentication is handled entirely by the Catalix gateway.
+- **`x-passport`** is injected by the gateway on every request for authenticated users.
+- **`X-relative-gateway-path`** carries the URL sub-path prefix so `asp-page` links and redirects resolve correctly.
+
+---
+
+## Accessing User Information
+
+```csharp
+using RLD.CommonAuthentication.Passport.Models;
+using System.Security.Claims;
+
+// User ID
+var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+// Email (if using AppPassport with an Email field)
+var email = User.FindFirst("Email")?.Value;
+
+// User type (e.g. "Standard", "Service")
+var userType = User.FindFirst(PassportClaimTypes.UserType)?.Value;
+
+// Support user flag
+var isSupportUser = User.HasClaim(PassportClaimTypes.IsSupportUser, "true");
+
+// Group memberships
+var groups = User.FindAll(PassportClaimTypes.UserGroup).Select(c => c.Value).ToList();
+
+// Strongly-typed passport (when using a custom model)
+var identity = User.Identity as PassportIdentity<AppPassport>;
+var passport = identity?.Passport; // AppPassport instance
+```
+
+---
+
+## Advanced Configuration
+
+### Custom Header Name
+
+```csharp
+.AddPassport<AppPassport>(options =>
+{
+    options.HeaderName = "x-my-custom-passport";
+});
+```
+
+### Authentication Events
+
+```csharp
+.AddPassport<AppPassport>(options =>
+{
+    options.Events.OnPassportValidated = context =>
+    {
+        var claimsIdentity = (ClaimsIdentity)context.Principal!.Identity!;
+        claimsIdentity.AddClaim(new Claim("tenant", "acme"));
+        return Task.CompletedTask;
+    };
+
+    options.Events.OnAuthenticationFailed = context =>
+    {
+        Console.Error.WriteLine($"Auth failed: {context.Exception.Message}");
+        return Task.CompletedTask;
+    };
+
+    options.Events.OnMessageReceived = context =>
+    {
+        // Override token source - e.g. read from query string for local testing
+        context.Token = context.HttpContext.Request.Query["passport"];
+        return Task.CompletedTask;
+    };
+});
+```
+
+### Role-Based Authorization Policies
+
+```csharp
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy =>
+        policy.RequireClaim(PassportClaimTypes.UserGroup, "admin"));
+
+    options.AddPolicy("SupportOnly", policy =>
+        policy.RequireClaim(PassportClaimTypes.IsSupportUser, "true"));
+});
+```
+
+```csharp
+[Authorize(Policy = "AdminOnly")]
+public class AdminModel : PageModel { ... }
+```
+
+---
+
+## Passport String Format
+
+The `x-passport` header value has the following structure:
+
+```
+v1.<Base64(ProtobufBytes)>.<Base64("static.passport.test")>
+```
+
+| Part | Description |
+|------|-------------|
+| `v1` | Version prefix |
+| `<Base64(ProtobufBytes)>` | Protobuf-encoded passport payload |
+| `<Base64("static.passport.test")>` | Static signature |
+
+### Payload Fields
+
+| Field | Proto tag | Claim type | Description |
+|-------|-----------|------------|-------------|
+| `UserID` | 1 | `ClaimTypes.NameIdentifier` | Stable user identifier |
+| `IsSupportUser` | 2 | `support_user` | Support-level access flag |
+| `UserGroups` | 3 | `user_groups` | Group memberships (one claim per group) |
+| `OptionalClaims` | 4 | key name | Extensible key/value bag |
+| `UserType` | 5 | `user_type` | Account classification |
+| *(custom fields)* | 6+ | property name | Fields added by a derived passport type |
+
+---
+
+## Generating a Test Passport
+
+Use `ProtobufPassportSerializer` to create a valid `x-passport` value in unit tests or local development:
+
+```csharp
+using RLD.CommonAuthentication.Passport.Models;
+using RLD.CommonAuthentication.Passport.Serialization;
+
+var passport = new AppPassport
+{
+    UserID     = "test-user-123",
+    Email      = "test@example.com",
+    UserType   = "Standard",
+    UserGroups = ["users", "editors"]
+};
+
+var serializer = new ProtobufPassportSerializer<AppPassport>();
+var passportString = serializer.Serialize(passport);
+// Use as: x-passport: <passportString>
+```
+
+---
+
+## API Reference
+
+### `PassportAuthenticationDefaults`
+
+| Constant | Value |
+|----------|-------|
+| `AuthenticationScheme` | `"Passport"` |
+| `DisplayName` | `"Common Authentication Passport"` |
+| `PassportHeaderName` | `"x-passport"` |
+
+### `PassportAuthenticationOptions<TPassport>`
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `HeaderName` | `string` | `"x-passport"` | HTTP header carrying the passport |
+| `Serializer` | `IPassportSerializer<TPassport>` | `ProtobufPassportSerializer<TPassport>` | Deserializes the header value |
+| `Events` | `PassportAuthenticationEvents<TPassport>` | No-op handlers | Pipeline event hooks |
+
+### `PassportClaimTypes`
+
+| Constant | Claim value | Description |
+|----------|-------------|-------------|
+| `UserType` | `"user_type"` | Account classification |
+| `IsSupportUser` | `"support_user"` | Support-level access |
+| `UserGroup` | `"user_groups"` | Group membership |
+
+### `AddPassport` Overloads
+
+```csharp
+// Base passport model, default scheme
+builder.AddPassport();
+builder.AddPassport(options => { ... });
+
+// Custom passport model
+builder.AddPassport<AppPassport>(options => { ... });
+
+// Custom scheme name
+builder.AddPassport<AppPassport>("MyScheme", options => { ... });
+```
+
+---
+
+## Troubleshooting
+
+| Symptom | Likely Cause | Fix |
+|---------|--------------|-----|
+| `401 Unauthorized` on all requests | Missing or malformed `x-passport` header | Confirm the Catalix gateway is forwarding the header; verify `HeaderName` config |
+| `InvalidOperationException: Invalid passport format` | Header is not `v1.<payload>.<sig>` | Ensure the passport is produced by a compatible CAP serializer |
+| `Passport signature validation failed` | Signature mismatch | Confirm sender and receiver use the same signature value |
+| Claims not resolving | Wrong claim type string | Use `PassportClaimTypes` constants instead of raw strings |
+| Custom fields not in `User.Claims` | Derived type not registered in Protobuf | Call `RuntimeTypeModel.Default[typeof(AuthenticationPassport)].AddSubType(...)` before `app.Build()` |
+| Razor `asp-page` links broken behind gateway | `PathBase` not set | Ensure `app.UseDynamicPathBase()` is called before `app.UseRouting()` |

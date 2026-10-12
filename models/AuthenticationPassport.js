@@ -50,6 +50,7 @@ class AuthenticationPassport {
      */
     static fromIdToken(idToken) {
         try {
+            console.log(`Creating passport from ID token: ${idToken}`);
             // In a real implementation, you would verify and decode the JWT
             // For now, we'll create a mock implementation
             

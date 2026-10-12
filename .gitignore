@@ -126,3 +126,4 @@ node_modules/.package-lock.json
 /cap-dotnet-package/test/Catalix.Authentication.Passport.Tests/obj
 /cap-dotnet-package/src/Catalix.Authentication.Passport/bin/Debug/net8.0
 /cap-dotnet-package/examples/net/obj
+/cap-dotnet-package/examples/net/bin/Debug/net9.0

@@ -1,4 +1,4 @@
-# Copilot Instructions: Catalix Passport Authentication Implementation (.NET 6/8)
+# Copilot Instructions: Common Authentication Passport (CAP) (formerly Catalix Passport Authentication Implementation)) (.NET 6/8)
 
 Use these step-by-step instructions and code examples to scaffold Passport Authentication in your ASP.NET project.
 
