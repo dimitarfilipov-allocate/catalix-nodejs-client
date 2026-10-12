@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Check - Catalix Demo</title>
+    <link rel="stylesheet" href="<%= relativePathPrefix %>/css/style.css">
+</head>
+<body class="simple-home">
+    <main class="simple-container">
+        <section class="simple-card">
+            <h1>Health Check</h1>
+            <p>Application status: <strong id="health-status">Checking...</strong></p>
+            <p id="health-updated"></p>
+            <div class="simple-buttons">
+                <a href="<%= relativePathPrefix %>/" class="simple-btn outline">Home</a>
+                <a href="/health" class="simple-btn">Health API</a>
+            </div>
+        </section>
+    </main>
+    <script>
+        fetch('/health')
+            .then(response => {
+                if (!response.ok) throw new Error('Health check failed');
+                return response.json();
+            })
+            .then(health => {
+                document.getElementById('health-status').textContent = health.status;
+                document.getElementById('health-updated').textContent = `Last checked: ${health.timestamp}`;
+            })
+            .catch(() => {
+                document.getElementById('health-status').textContent = 'unavailable';
+            });
+    </script>
+</body>
+</html>

@@ -147,6 +147,19 @@ app.post('/start-session', (req, res) => {
 // ===== PUBLIC ROUTES =====
 
 // Routes that don't require passport authentication
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString()
+    });
+});
+
+app.get('/health-check', (req, res) => {
+    res.render('health', {
+        relativePathPrefix: relativePathPrefix
+    });
+});
+
 app.get('/', (req, res) => {
     // Home page - public route (authentication handled by individual routes)
     res.render('home', {
