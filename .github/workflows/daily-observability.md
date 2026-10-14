@@ -137,7 +137,7 @@ jobs:
                       raise ValueError("partial_response")
                   durations = []
                   for item in payload.get("traces", []):
-                      duration = float(item["durationMs"])
+                      duration = float(item.get("durationMs", 0))
                       timestamp = int(item["startTimeUnixNano"]) // 1000000000
                       if not math.isfinite(duration) or duration < 0 or not start <= timestamp < stop:
                           raise ValueError("invalid_response")
